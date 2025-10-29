@@ -1,0 +1,5 @@
+routes:
+- path: "/service-a/"
+  upstream: http://localhost:9000
+- path: "/service-b/"
+  upstream: http://localhost:9001
