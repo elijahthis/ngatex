@@ -2,8 +2,11 @@ package mockservice
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
+	"log"
 	"net/http"
+	"sync"
 )
 
 // User represents a user with a name and age.
@@ -38,5 +41,22 @@ func Run() {
 	http.HandleFunc("/", hello)
 	http.Handle("/headers", http.HandlerFunc(headers))
 
-	http.ListenAndServe(":9000", nil)
+	port := flag.String("port", "9001", "port to listen to")
+	flag.Parse()
+
+	fmt.Printf("MOCKSERVICE 1 is listening on port %s\n", *port)
+	http.ListenAndServe(":"+*port, nil)
+}
+
+func RunMultiple(port string, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", hello)
+	mux.Handle("/headers", http.HandlerFunc(headers))
+
+	fmt.Printf("MOCKSERVICE 1 is listening on port %s\n", port)
+	if err := http.ListenAndServe(":"+port, mux); err != nil {
+		log.Fatalf("Server on port %s failed: %v\n", port, err)
+	}
 }

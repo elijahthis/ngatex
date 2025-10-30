@@ -9,12 +9,23 @@ import (
 
 // Types
 type Config struct {
-	Routes []Route `yaml:"routes"`
+	Routes   []Route  `yaml:"routes"`
+	Services Services `yaml:"services"`
 }
 
 type Route struct {
-	Path     string `yaml:"path"`
-	Upstream string `yaml:"upstream"`
+	Path    string `yaml:"path"`
+	Service string `yaml:"service"`
+}
+
+type Services struct {
+	ServiceA Service `yaml:"service-a"`
+	ServiceB Service `yaml:"service-b"`
+}
+
+type Service struct {
+	Upstreams           []string `yaml:"upstreams"`
+	LoadBalancingPolicy string   `yaml:"load_balancing_policy"`
 }
 
 // Load config file

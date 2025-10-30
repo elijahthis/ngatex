@@ -1,5 +1,21 @@
+services:
+  service-a:
+    load_balancing_policy: "round-robin"
+    upstreams:
+    - "http://localhost:9000"
+    - "http://localhost:9001"
+    - "http://localhost:9002"
+    - "http://localhost:9003"
+  service-b:
+    load_balancing_policy: "round-robin"
+    upstreams:
+    - "http://localhost:9004"
+    - "http://localhost:9005"
+
+
+
 routes:
 - path: "/service-a/"
-  upstream: http://localhost:9000
+  service: "service-a"
 - path: "/service-b/"
-  upstream: http://localhost:9001
+  service: "service-b"
