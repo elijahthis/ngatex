@@ -6,10 +6,11 @@ import (
 )
 
 type Upstream struct {
-	URL        *url.URL
-	Weight     int32
-	activeConn atomic.Int64
-	healthy    atomic.Bool
+	URL           *url.URL
+	Weight        int32
+	currentWeight int32
+	activeConn    atomic.Int64
+	healthy       atomic.Bool
 }
 
 func (u *Upstream) IsAlive() bool {
