@@ -2,6 +2,7 @@ package loadbalancer
 
 import (
 	"errors"
+	"log"
 	"net/url"
 	"sync"
 )
@@ -28,16 +29,20 @@ func NewLeastConnections(upStreamStrings []string) (*LeastConnections, error) {
 
 	return &LeastConnections{
 		upstreams: upstreams,
+		mu:        &sync.Mutex{},
 	}, nil
+}
+
+func (lc *LeastConnections) GetUpstreams() []*Upstream {
+	return lc.upstreams
 }
 
 func (lc *LeastConnections) Next() (*Upstream, error) {
 	lc.mu.Lock()
 	defer lc.mu.Unlock()
 
-	// numOfUpstreams := uint64(len(rr.upstreams))
 	var best *Upstream
-	minConn := int64(-1)
+	minConn := int64(1<<63 - 1)
 
 	for _, u := range lc.upstreams {
 		if !u.IsAlive() {
@@ -46,12 +51,15 @@ func (lc *LeastConnections) Next() (*Upstream, error) {
 
 		if best == nil || u.GetActiveConn() < minConn {
 			best = u
+			minConn = u.GetActiveConn()
 		}
 	}
 
 	if best == nil {
 		return nil, errors.New("no healthy upstreams available")
 	}
+
+	log.Printf("LC chose %s", best.URL.String())
 
 	return best, nil
 }

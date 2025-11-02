@@ -26,7 +26,7 @@ func NewGatewayTransport(cfg TransportConfig) *http.Transport {
 			Timeout:   cfg.DialTimeout,
 			KeepAlive: 30 * time.Second,
 		}).DialContext,
-		// implement later, using Roundtripper
+		// implement later, will try Roundtripper
 		// RequestTimeout:      cfg.RequestTimeout,
 		// MaxRetries:          cfg.MaxIdleConns,
 	}

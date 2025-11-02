@@ -17,21 +17,21 @@ func Run() {
 	}
 
 	var wg sync.WaitGroup
-
-	for _, upstream := range configData.Services.ServiceA.Upstreams {
-		splitPort := strings.Split(upstream, ":")
-		port := splitPort[len(splitPort)-1]
-
-		wg.Add(1)
-		go mockservice.RunMultiple(port, &wg)
+	mockServiceFuncs := []func(string, *sync.WaitGroup){
+		mockservice.RunMultiple,
+		mockservice2.RunMultiple,
 	}
 
-	for _, upstream := range configData.Services.ServiceB.Upstreams {
-		splitPort := strings.Split(upstream, ":")
-		port := splitPort[len(splitPort)-1]
+	i := 0
+	for _, service := range configData.Services {
+		for _, upstream := range service.Upstreams {
+			splitPort := strings.Split(upstream, ":")
+			port := splitPort[len(splitPort)-1]
 
-		wg.Add(1)
-		go mockservice2.RunMultiple(port, &wg)
+			wg.Add(1)
+			go mockServiceFuncs[i](port, &wg)
+		}
+		i++
 	}
 
 	wg.Wait()

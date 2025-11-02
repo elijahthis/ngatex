@@ -9,7 +9,6 @@ import (
 	"sync"
 )
 
-// User represents a user with a name and age.
 type Res struct {
 	Message string `json:"message"`
 	Success bool   `json:"success"`
@@ -39,6 +38,9 @@ func headers(w http.ResponseWriter, req *http.Request) {
 
 func Run() {
 	http.HandleFunc("/", hello)
+	http.HandleFunc("/health", func(w http.ResponseWriter, req *http.Request) {
+		w.Write([]byte("Mock 1 is alive"))
+	})
 	http.Handle("/headers", http.HandlerFunc(headers))
 
 	port := flag.String("port", "9001", "port to listen to")

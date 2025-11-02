@@ -1,9 +1,8 @@
 package loadbalancer
 
-// Using the Smooth Weighted Round Robin approach
-
 import (
 	"errors"
+	"log"
 	"net/url"
 	"sync"
 )
@@ -35,6 +34,10 @@ func NewWeightedRoundRobin(upStreamStrings []string) (*WeightedRoundRobin, error
 	}, nil
 }
 
+func (wrr *WeightedRoundRobin) GetUpstreams() []*Upstream {
+	return wrr.upstreams
+}
+
 func (wrr *WeightedRoundRobin) Next() (*Upstream, error) {
 	wrr.mu.Lock()
 	defer wrr.mu.Unlock()
@@ -60,5 +63,7 @@ func (wrr *WeightedRoundRobin) Next() (*Upstream, error) {
 	}
 
 	selectedUpstream.currentWeight -= int32(totalWeights)
+	log.Printf("WRR chose %s", selectedUpstream.URL.String())
+
 	return selectedUpstream, nil
 }

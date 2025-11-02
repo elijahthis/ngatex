@@ -2,6 +2,7 @@ package loadbalancer
 
 import (
 	"errors"
+	"log"
 	"net/url"
 	"sync/atomic"
 )
@@ -31,6 +32,10 @@ func NewRoundRobin(upStreamStrings []string) (*RoundRobin, error) {
 	}, nil
 }
 
+func (rr *RoundRobin) GetUpstreams() []*Upstream {
+	return rr.upstreams
+}
+
 func (rr *RoundRobin) Next() (*Upstream, error) {
 	numOfUpstreams := uint64(len(rr.upstreams))
 
@@ -40,6 +45,7 @@ func (rr *RoundRobin) Next() (*Upstream, error) {
 
 		upstream := rr.upstreams[idx]
 		if upstream.IsAlive() {
+			log.Printf("RR chose %s", upstream.URL.String())
 			return upstream, nil
 		}
 	}

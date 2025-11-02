@@ -1,49 +1,55 @@
 package main
 
 import (
+	"flag"
+	"log"
 	"net/http"
+	"time"
 
+	"github.com/elijahthis/ngatex/pkg/config"
+	"github.com/elijahthis/ngatex/pkg/health"
+	"github.com/elijahthis/ngatex/pkg/loadbalancer"
 	"github.com/elijahthis/ngatex/pkg/router"
 )
 
 func main() {
-	// Load config file
-	// configData, err := config.Load("config.yaml")
-	// if err != nil {
-	// 	log.Fatalf("Gateway Main: %v", err)
-	// }
+	configPath := flag.String("config", "config.yaml", "path to YAML config file")
+	flag.Parse()
 
-	// proxyTransport := transport.NewGatewayTransport(transport.TransportConfig{
-	// 	MaxIdleConns:        5000,
-	// 	MaxIdleConnsPerHost: 1000,
-	// 	IdleConnTimeout:     30 * time.Second,
-	// 	DialTimeout:         100 * time.Millisecond,
-	// 	TLSHandshakeTimeout: 5 * time.Second,
-	// })
+	log.Printf("Loading config from %s", *configPath)
+
+	configData, err := config.Load(*configPath)
+	if err != nil {
+		log.Fatalf("Gateway Main: %v", err)
+	}
 
 	r := router.New()
+	routeMap := config.BuildRouteServiceMap(configData)
 
-	// Server Multiplexer
-	// mux := http.NewServeMux()
-	// for _, route := range configData.Routes {
-	// 	route := route
-	// 	upstreamURL, err := url.Parse(route.Upstream)
-	// 	if err != nil {
-	// 		log.Fatalf("Gateway Main: %v", err)
-	// 	}
+	for _, route := range configData.Routes {
+		route := route
+		service := routeMap[route.Path]
+		var lb loadbalancer.Balancer
 
-	// 	proxy := httputil.NewSingleHostReverseProxy(upstreamURL)
-	// 	proxy.Transport = proxyTransport
-	// 	handler := http.StripPrefix(route.Path, proxy)
-	// 	// proxy.Director = func(req *http.Request) {
-	// 	// 	req.URL.Scheme = upstreamURL.Scheme
-	// 	// 	req.URL.Host = upstreamURL.Host
-	// 	// 	req.Host = upstreamURL.Host
-	// 	// 	req.URL.Path = upstreamURL.Path
-	// 	// }
-	// 	mux.Handle(route.Path, handler)
-	// }
+		switch service.LoadBalancingPolicy {
+		case "round-robin":
+			lb, err = loadbalancer.NewRoundRobin(service.Upstreams)
+		case "weighted-round-robin":
+			lb, err = loadbalancer.NewWeightedRoundRobin(service.Upstreams)
+		case "least-connections":
+			lb, err = loadbalancer.NewLeastConnections(service.Upstreams)
+		}
 
-	http.ListenAndServe(":8080", r)
+		if err != nil {
+			log.Fatalf("failed to initialize load balancer for %s: %v", route.Path, err)
+		}
+
+		health.StartActiveServiceChecks(lb.GetUpstreams(), 10*time.Second)
+
+		r.AddRoute(route.Path, service, lb)
+	}
+
+	log.Println("Gateway running on :8080")
+	http.ListenAndServe(":8080", r.Router)
 
 }

@@ -1,6 +1,6 @@
 services:
   service-a:
-    load_balancing_policy: "round-robin"
+    load_balancing_policy: "weighted-round-robin"
     upstreams:
     - "http://localhost:9000"
     - "http://localhost:9001"

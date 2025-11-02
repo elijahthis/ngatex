@@ -1,6 +1,6 @@
 package loadbalancer
 
 type Balancer interface {
-	// Next returns the next available upstream
+	GetUpstreams() []*Upstream
 	Next() (*Upstream, error)
 }

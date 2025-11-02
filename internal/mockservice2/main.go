@@ -9,7 +9,6 @@ import (
 	"time"
 )
 
-// User represents a user with a name and age.
 type Res struct {
 	Message string `json:"message"`
 	Success bool   `json:"success"`
@@ -24,14 +23,12 @@ func headers(w http.ResponseWriter, req *http.Request) {
 }
 
 func streamingHandler(w http.ResponseWriter, req *http.Request) {
-	// check if flusher is supported
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming not supported", http.StatusInternalServerError)
 		return
 	}
 
-	// set headers
 	w.Header().Set("Content-Type", "text/plain")
 	w.Header().Set("Transfer-Encoding", "chunked")
 
@@ -47,6 +44,9 @@ func streamingHandler(w http.ResponseWriter, req *http.Request) {
 
 func Run() {
 	http.HandleFunc("/", streamingHandler)
+	http.HandleFunc("/health", func(w http.ResponseWriter, req *http.Request) {
+		w.Write([]byte("Mock 2 is alive"))
+	})
 	http.Handle("/headers", http.HandlerFunc(headers))
 
 	port := flag.String("port", "9004", "port to listen to")
