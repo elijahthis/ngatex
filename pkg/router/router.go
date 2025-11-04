@@ -7,7 +7,6 @@ import (
 	"net/http/httputil"
 	"time"
 
-	"github.com/elijahthis/ngatex/pkg/config"
 	"github.com/elijahthis/ngatex/pkg/loadbalancer"
 	"github.com/elijahthis/ngatex/pkg/transport"
 	"github.com/go-chi/chi/v5"
@@ -51,7 +50,7 @@ func New() *Router {
 // 	return u, ok
 // }
 
-func (r *Router) AddRoute(path string, service *config.Service, lb loadbalancer.Balancer) {
+func (r *Router) CreateProxyHandler(lb loadbalancer.Balancer) http.Handler {
 
 	proxy := &httputil.ReverseProxy{
 		Transport: r.Transport,
@@ -105,6 +104,5 @@ func (r *Router) AddRoute(path string, service *config.Service, lb loadbalancer.
 		},
 	}
 
-	proxyHandler := http.StripPrefix(path, proxy)
-	r.Router.Handle(path, proxyHandler)
+	return proxy
 }

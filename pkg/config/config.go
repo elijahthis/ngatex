@@ -8,13 +8,29 @@ import (
 )
 
 type Config struct {
-	Routes   []*Route            `yaml:"routes"`
-	Services map[string]*Service `yaml:"services"`
+	Routes      []*Route            `yaml:"routes"`
+	Services    map[string]*Service `yaml:"services"`
+	Middlewares MiddlewareConfig    `yaml:"middlewares"`
+}
+
+type MiddlewareConfig struct {
+	RateLimit  RateLimitConfig  `yaml:"rate-limit"`
+	APIKeyAuth APIKeyAuthConfig `yaml:"api-key-auth"`
+}
+
+type RateLimitConfig struct {
+	RequestsPerSecond float64 `yaml:"requests_per_second"`
+	Burst             int     `yaml:"burst"`
+}
+
+type APIKeyAuthConfig struct {
+	Keys []string `yaml:"keys"`
 }
 
 type Route struct {
-	Path    string `yaml:"path"`
-	Service string `yaml:"service"`
+	Path            string   `yaml:"path"`
+	Service         string   `yaml:"service"`
+	MiddlewareNames []string `yaml:"middleware_names"`
 }
 
 type Service struct {

@@ -1,21 +1,34 @@
+middlewares:
+  rate-limit:
+    requests_per_second: 10
+    burst: 20
+  api-key-auth:
+    keys:
+    - "key-abc-123"
+    - "key-xyz-789"
+
+
 services:
   service-a:
-    load_balancing_policy: "weighted-round-robin"
+    load_balancing_policy: "round-robin"
     upstreams:
     - "http://localhost:9000"
     - "http://localhost:9001"
     - "http://localhost:9002"
     - "http://localhost:9003"
   service-b:
-    load_balancing_policy: "round-robin"
+    load_balancing_policy: "least-connections"
     upstreams:
     - "http://localhost:9004"
     - "http://localhost:9005"
-
+    - "http://localhost:9006"
+    - "http://localhost:9007"
 
 
 routes:
 - path: "/service-a/"
   service: "service-a"
+  middleware_names: ["rate-limit", "api-key-auth"]
 - path: "/service-b/"
   service: "service-b"
+  middleware_names: ["rate-limit"]
