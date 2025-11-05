@@ -25,6 +25,11 @@ func main() {
 	}
 
 	r := router.New()
+	r.Router.Use(middleware.RequestID)
+	r.Router.Use(middleware.Logger)
+
+	r.AddDefaultRoutes()
+
 	routeMap := config.BuildRouteServiceMap(configData)
 
 	mwFactory := make(map[string]func(http.Handler) http.Handler)

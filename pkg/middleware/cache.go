@@ -14,7 +14,7 @@ type responseSpy struct {
 	body       *bytes.Buffer
 }
 
-func newResponseSpy(w http.ResponseWriter) *responseSpy {
+func NewResponseSpy(w http.ResponseWriter) *responseSpy {
 	return &responseSpy{
 		ResponseWriter: w,
 		body:           new(bytes.Buffer),
@@ -72,7 +72,7 @@ func (c *Cache) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		spy := newResponseSpy(w)
+		spy := NewResponseSpy(w)
 		next.ServeHTTP(spy, r)
 
 		if spy.statusCode == http.StatusOK {

@@ -35,10 +35,6 @@ func New() *Router {
 		}),
 	}
 
-	r.Router.Get("/health", func(w http.ResponseWriter, req *http.Request) {
-		w.Write([]byte("Endpoint is active"))
-	})
-
 	return r
 }
 
@@ -105,4 +101,10 @@ func (r *Router) CreateProxyHandler(lb loadbalancer.Balancer) http.Handler {
 	}
 
 	return proxy
+}
+
+func (r *Router) AddDefaultRoutes() {
+	r.Router.Get("/health", func(w http.ResponseWriter, req *http.Request) {
+		w.Write([]byte("Endpoint is active"))
+	})
 }
