@@ -39,6 +39,19 @@ func main() {
 		mwFactory["api-key-auth"] = auth.Auth
 	}
 
+	if cfg := configData.Middlewares.JWTAuth; cfg.SecretKey != "" {
+		auth := middleware.NewJWTAuth(cfg.SecretKey)
+		mwFactory["jwt-auth"] = auth.Auth
+	}
+	if cfg := configData.Middlewares.Caching; cfg.TTL != "" {
+		ttl, err := time.ParseDuration(cfg.TTL)
+		if err != nil {
+			log.Fatalf("Invalid cache TTL: %v", err)
+		}
+		c := middleware.NewCache(ttl)
+		mwFactory["caching"] = c.Middleware
+	}
+
 	for _, route := range configData.Routes {
 		route := route
 		service := routeMap[route.Path]

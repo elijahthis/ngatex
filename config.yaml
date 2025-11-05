@@ -6,6 +6,10 @@ middlewares:
     keys:
     - "key-abc-123"
     - "key-xyz-789"
+  jwt-auth:
+    secret_key: "my-super-secret-signing-key"
+  caching:
+    ttl: "30s"
 
 
 services:
@@ -28,7 +32,7 @@ services:
 routes:
 - path: "/service-a/"
   service: "service-a"
-  middleware_names: ["rate-limit", "api-key-auth"]
+  middleware_names: ["rate-limit", "jwt-auth"]
 - path: "/service-b/"
   service: "service-b"
   middleware_names: ["rate-limit"]

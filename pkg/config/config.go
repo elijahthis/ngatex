@@ -16,6 +16,8 @@ type Config struct {
 type MiddlewareConfig struct {
 	RateLimit  RateLimitConfig  `yaml:"rate-limit"`
 	APIKeyAuth APIKeyAuthConfig `yaml:"api-key-auth"`
+	JWTAuth    JWTAuthConfig    `yaml:"jwt-auth"`
+	Caching    CachingConfig    `yaml:"caching"`
 }
 
 type RateLimitConfig struct {
@@ -25,6 +27,14 @@ type RateLimitConfig struct {
 
 type APIKeyAuthConfig struct {
 	Keys []string `yaml:"keys"`
+}
+
+type JWTAuthConfig struct {
+	SecretKey string `yaml:"secret_key"`
+}
+
+type CachingConfig struct {
+	TTL string `yaml:"ttl"`
 }
 
 type Route struct {
