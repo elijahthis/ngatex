@@ -2,9 +2,10 @@ package loadbalancer
 
 import (
 	"errors"
-	"log"
 	"net/url"
 	"sync"
+
+	"github.com/rs/zerolog/log"
 )
 
 type LeastConnections struct {
@@ -59,7 +60,7 @@ func (lc *LeastConnections) Next() (*Upstream, error) {
 		return nil, errors.New("no healthy upstreams available")
 	}
 
-	log.Printf("LC chose %s", best.URL.String())
+	log.Info().Msgf("LC chose %s", best.URL.String())
 
 	return best, nil
 }

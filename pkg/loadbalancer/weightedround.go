@@ -2,9 +2,10 @@ package loadbalancer
 
 import (
 	"errors"
-	"log"
 	"net/url"
 	"sync"
+
+	"github.com/rs/zerolog/log"
 )
 
 type WeightedRoundRobin struct {
@@ -63,7 +64,7 @@ func (wrr *WeightedRoundRobin) Next() (*Upstream, error) {
 	}
 
 	selectedUpstream.currentWeight -= int32(totalWeights)
-	log.Printf("WRR chose %s", selectedUpstream.URL.String())
+	log.Info().Msgf("WRR chose %s", selectedUpstream.URL.String())
 
 	return selectedUpstream, nil
 }

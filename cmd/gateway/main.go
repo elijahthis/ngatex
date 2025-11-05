@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
-	"log"
 	"net/http"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/elijahthis/ngatex/pkg/config"
 	"github.com/elijahthis/ngatex/pkg/health"
@@ -14,14 +15,17 @@ import (
 )
 
 func main() {
+	port := flag.String("port", "8080", "Port to run gateway")
 	configPath := flag.String("config", "config.yaml", "path to YAML config file")
 	flag.Parse()
 
-	log.Printf("Loading config from %s", *configPath)
+	log.Info().Msgf("Loading config from %s", *configPath)
 
 	configData, err := config.Load(*configPath)
 	if err != nil {
-		log.Fatalf("Gateway Main: %v", err)
+		log.Fatal().
+			Err(err).
+			Msgf("Unable to load config from %s", *configPath)
 	}
 
 	r := router.New()
@@ -51,7 +55,9 @@ func main() {
 	if cfg := configData.Middlewares.Caching; cfg.TTL != "" {
 		ttl, err := time.ParseDuration(cfg.TTL)
 		if err != nil {
-			log.Fatalf("Invalid cache TTL: %v", err)
+			log.Fatal().
+				Err(err).
+				Msgf("Invalid cache TTL")
 		}
 		c := middleware.NewCache(ttl)
 		mwFactory["caching"] = c.Middleware
@@ -72,7 +78,9 @@ func main() {
 		}
 
 		if err != nil {
-			log.Fatalf("failed to initialize load balancer for %s: %v", route.Path, err)
+			log.Fatal().
+				Err(err).
+				Msgf("Failed to initialize load balancer for %s", route.Path)
 		}
 
 		health.StartActiveServiceChecks(lb.GetUpstreams(), 10*time.Second)
@@ -85,14 +93,14 @@ func main() {
 			if mw, ok := mwFactory[mwName]; ok {
 				mwStack = append(mwStack, mw)
 			} else {
-				log.Printf("Warning: middleware '%s' not found", mwName)
+				log.Info().Msgf("Warning: middleware '%s' not found", mwName)
 			}
 		}
 
 		r.Router.With(mwStack...).Handle(route.Path, finalHandler)
 	}
 
-	log.Println("Gateway running on :8080")
-	http.ListenAndServe(":8080", r.Router)
+	log.Info().Msgf("Starting PUBLIC gateway on :%s", *port)
+	http.ListenAndServe(":"+*port, r.Router)
 
 }

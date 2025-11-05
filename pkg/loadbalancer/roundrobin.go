@@ -2,9 +2,10 @@ package loadbalancer
 
 import (
 	"errors"
-	"log"
 	"net/url"
 	"sync/atomic"
+
+	"github.com/rs/zerolog/log"
 )
 
 type RoundRobin struct {
@@ -45,7 +46,7 @@ func (rr *RoundRobin) Next() (*Upstream, error) {
 
 		upstream := rr.upstreams[idx]
 		if upstream.IsAlive() {
-			log.Printf("RR chose %s", upstream.URL.String())
+			log.Info().Msgf("RR chose %s", upstream.URL.String())
 			return upstream, nil
 		}
 	}

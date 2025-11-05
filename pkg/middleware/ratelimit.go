@@ -1,10 +1,11 @@
 package middleware
 
 import (
-	"log"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/patrickmn/go-cache"
 	"golang.org/x/time/rate"
@@ -39,7 +40,7 @@ func (i *IPRateLimiter) RateLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
-			log.Printf("could not get ip from %s: %v", r.RemoteAddr, err)
+			log.Info().Msgf("could not get ip from %s: %v", r.RemoteAddr, err)
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}

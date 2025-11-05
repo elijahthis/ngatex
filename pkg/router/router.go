@@ -2,10 +2,11 @@ package router
 
 import (
 	"context"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"time"
+
+	"github.com/rs/zerolog/log"
 
 	"github.com/elijahthis/ngatex/pkg/loadbalancer"
 	"github.com/elijahthis/ngatex/pkg/transport"
@@ -81,7 +82,7 @@ func (r *Router) CreateProxyHandler(lb loadbalancer.Balancer) http.Handler {
 		},
 
 		ErrorHandler: func(w http.ResponseWriter, req *http.Request, err error) {
-			log.Printf("proxy error for %s: %v", req.URL, err)
+			log.Info().Msgf("proxy error for %s: %v", req.URL, err)
 
 			if val := req.Context().Value(proxyErrorKey); val != nil {
 				http.Error(w, "Service temporarily unavailable", http.StatusServiceUnavailable)
