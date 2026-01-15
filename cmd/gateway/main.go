@@ -3,8 +3,11 @@ package main
 import (
 	"flag"
 	"net/http"
+	"os"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/elijahthis/ngatex/pkg/config"
@@ -12,23 +15,29 @@ import (
 	"github.com/elijahthis/ngatex/pkg/loadbalancer"
 	"github.com/elijahthis/ngatex/pkg/middleware"
 	"github.com/elijahthis/ngatex/pkg/router"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
+	// Main Server Setup
 	port := flag.String("port", "8080", "Port to run gateway")
 	configPath := flag.String("config", "config.yaml", "path to YAML config file")
 	flag.Parse()
 
-	log.Info().Msgf("Loading config from %s", *configPath)
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
+	log.Info().Str("configPath", *configPath).Msgf("Loading config from ")
 
 	configData, err := config.Load(*configPath)
 	if err != nil {
 		log.Fatal().
+			Str("configPath", *configPath).
 			Err(err).
-			Msgf("Unable to load config from %s", *configPath)
+			Msg("Unable to load config from ")
 	}
 
 	r := router.New()
+
+	r.Router.Use(middleware.Metrics)
 	r.Router.Use(middleware.RequestID)
 	r.Router.Use(middleware.Logger)
 
@@ -57,7 +66,7 @@ func main() {
 		if err != nil {
 			log.Fatal().
 				Err(err).
-				Msgf("Invalid cache TTL")
+				Msg("Invalid cache TTL")
 		}
 		c := middleware.NewCache(ttl)
 		mwFactory["caching"] = c.Middleware
@@ -80,7 +89,8 @@ func main() {
 		if err != nil {
 			log.Fatal().
 				Err(err).
-				Msgf("Failed to initialize load balancer for %s", route.Path)
+				Str("route.Path", route.Path).
+				Msg("Failed to initialize load balancer for ")
 		}
 
 		health.StartActiveServiceChecks(lb.GetUpstreams(), 10*time.Second)
@@ -93,14 +103,37 @@ func main() {
 			if mw, ok := mwFactory[mwName]; ok {
 				mwStack = append(mwStack, mw)
 			} else {
-				log.Info().Msgf("Warning: middleware '%s' not found", mwName)
+				log.Info().
+					Str("mwName", mwName).
+					Msgf("Warning: middleware '%s' not found", mwName)
 			}
 		}
 
 		r.Router.With(mwStack...).Handle(route.Path, finalHandler)
 	}
 
+	// Admin Server Setup
+
+	go func() {
+		adminRouter := chi.NewRouter()
+
+		adminRouter.Handle("/metrics", promhttp.Handler())
+
+		adminRouter.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
+		})
+
+		log.Info().Msg("Starting ADMIN gateway on :8081")
+		if err := http.ListenAndServe(":8081", adminRouter); err != nil {
+			log.Error().Err(err).Msg("ADMIN server failed")
+		}
+
+	}()
+
 	log.Info().Msgf("Starting PUBLIC gateway on :%s", *port)
-	http.ListenAndServe(":"+*port, r.Router)
+	if err := http.ListenAndServe(":"+*port, r.Router); err != nil {
+		log.Error().Err(err).Msg("PUBLIC gateway failed")
+	}
 
 }

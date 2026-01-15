@@ -8,13 +8,13 @@ import (
 )
 
 func main() {
-	secretKey := []byte("supersecret")
+	secretKey := []byte("my-super-secret-signing-key")
 
 	claims := jwt.MapClaims{
-		"sub":  "user123",                              
-		"role": "tester",                               
-		"exp":  time.Now().Add(5 * time.Minute).Unix(), 
-		"iat":  time.Now().Unix(),                      
+		"sub":  "user123",
+		"role": "tester",
+		"exp":  time.Now().Add(5 * time.Minute).Unix(),
+		"iat":  time.Now().Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
