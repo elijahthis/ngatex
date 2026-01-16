@@ -4,6 +4,8 @@ import (
 	"flag"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -11,10 +13,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/elijahthis/ngatex/pkg/config"
-	"github.com/elijahthis/ngatex/pkg/health"
-	"github.com/elijahthis/ngatex/pkg/loadbalancer"
+	"github.com/elijahthis/ngatex/pkg/gateway"
 	"github.com/elijahthis/ngatex/pkg/middleware"
-	"github.com/elijahthis/ngatex/pkg/router"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -34,16 +34,6 @@ func main() {
 			Err(err).
 			Msg("Unable to load config from ")
 	}
-
-	r := router.New()
-
-	r.Router.Use(middleware.Metrics)
-	r.Router.Use(middleware.RequestID)
-	r.Router.Use(middleware.Logger)
-
-	r.AddDefaultRoutes()
-
-	routeMap := config.BuildRouteServiceMap(configData)
 
 	mwFactory := make(map[string]func(http.Handler) http.Handler)
 
@@ -72,44 +62,13 @@ func main() {
 		mwFactory["caching"] = c.Middleware
 	}
 
-	for _, route := range configData.Routes {
-		route := route
-		service := routeMap[route.Path]
-		var lb loadbalancer.Balancer
+	mainEngine := &gateway.Engine{
+		Config:    configData,
+		MwFactory: mwFactory,
+	}
 
-		switch service.LoadBalancingPolicy {
-		case "round-robin":
-			lb, err = loadbalancer.NewRoundRobin(service.Upstreams)
-		case "weighted-round-robin":
-			lb, err = loadbalancer.NewWeightedRoundRobin(service.Upstreams)
-		case "least-connections":
-			lb, err = loadbalancer.NewLeastConnections(service.Upstreams)
-		}
-
-		if err != nil {
-			log.Fatal().
-				Err(err).
-				Str("route.Path", route.Path).
-				Msg("Failed to initialize load balancer for ")
-		}
-
-		health.StartActiveServiceChecks(lb.GetUpstreams(), 10*time.Second)
-
-		proxyHandler := r.CreateProxyHandler(lb)
-		finalHandler := http.StripPrefix(route.Path, proxyHandler)
-
-		var mwStack []func(http.Handler) http.Handler
-		for _, mwName := range route.MiddlewareNames {
-			if mw, ok := mwFactory[mwName]; ok {
-				mwStack = append(mwStack, mw)
-			} else {
-				log.Info().
-					Str("mwName", mwName).
-					Msgf("Warning: middleware '%s' not found", mwName)
-			}
-		}
-
-		r.Router.With(mwStack...).Handle(route.Path, finalHandler)
+	if err := mainEngine.ReloadConfig(configData); err != nil {
+		log.Error().Err(err).Msg("Error while loading config")
 	}
 
 	// Admin Server Setup
@@ -124,6 +83,22 @@ func main() {
 			w.Write([]byte("OK"))
 		})
 
+		adminRouter.Post("/reload", func(w http.ResponseWriter, r *http.Request) {
+			newCfg, err := config.Load(*configPath)
+			if err != nil {
+				log.Error().Err(err).Msg("Unable to reload config")
+				http.Error(w, "Unable to reload config", http.StatusBadRequest)
+				return
+			}
+
+			if err := mainEngine.ReloadConfig(newCfg); err != nil {
+				log.Error().Err(err).Msg("Error while reloading config")
+			}
+
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("Reloaded Successfully"))
+		})
+
 		log.Info().Msg("Starting ADMIN gateway on :8081")
 		if err := http.ListenAndServe(":8081", adminRouter); err != nil {
 			log.Error().Err(err).Msg("ADMIN server failed")
@@ -131,8 +106,26 @@ func main() {
 
 	}()
 
+	// SIGHUP Signal
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGHUP)
+	go func() {
+		for range sigChan {
+			log.Info().Msg("Received SIGHUP signal")
+
+			newCfg, err := config.Load(*configPath)
+			if err != nil {
+				log.Error().Err(err).Msg("Unable to reload config")
+			}
+
+			if err := mainEngine.ReloadConfig(newCfg); err != nil {
+				log.Error().Err(err).Msg("Error while reloading config")
+			}
+		}
+	}()
+
 	log.Info().Msgf("Starting PUBLIC gateway on :%s", *port)
-	if err := http.ListenAndServe(":"+*port, r.Router); err != nil {
+	if err := http.ListenAndServe(":"+*port, mainEngine); err != nil {
 		log.Error().Err(err).Msg("PUBLIC gateway failed")
 	}
 
