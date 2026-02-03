@@ -96,5 +96,6 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		log.Error().Msg("Router not found in Gateway engine struct")
 		http.Error(w, "Gateway initializing...", http.StatusServiceUnavailable)
+		return
 	}
 }

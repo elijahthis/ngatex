@@ -1,0 +1,16 @@
+services:
+  gateway:
+    build: .
+    ports:
+      - "8080:8080" # Public API
+      - "8081:8081" # Admin/Metrics
+    volumes:
+      - ./config.yaml:/root/config.yaml
+    depends_on:
+      - service-a
+
+  service-a:
+    image: my-mock-service:latest
+    # Run multiple instances for load balancing
+    deploy:
+      replicas: 3

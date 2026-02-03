@@ -35,7 +35,7 @@ func streamingHandler(w http.ResponseWriter, req *http.Request) {
 	for i := range 5 {
 		fmt.Fprintf(w, "Sending chunk %d...\n", i+1)
 		flusher.Flush()
-		time.Sleep(2 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	fmt.Fprintf(w, "Streaming complete.\n")
