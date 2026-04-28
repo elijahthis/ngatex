@@ -24,7 +24,7 @@ Ngatex is a lightweight, cloud-native API Gateway built from the ground up in Go
 ### 2. Installation
 
 ```bash
-git clone [https://github.com/your-username/ngatex.git](https://github.com/your-username/ngatex.git)
+git clone [https://github.com/elijahthis/ngatex.git](https://github.com/elijahthis/ngatex.git)
 cd ngatex
 make build
 ```
